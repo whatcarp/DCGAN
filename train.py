@@ -83,7 +83,7 @@ with open(annotation_path, encoding='utf-8') as f:
 
 # 读取训练集，生成数据加载器
 train_dataset = DCganDataset(lines, input_shape)
-data_loader = DataLoader(train_dataset, shuffle=False, batch_size=BATCH_SIZE)
+data_loader = DataLoader(train_dataset, shuffle=True, batch_size=BATCH_SIZE)
 
 
 # GAN train logic
