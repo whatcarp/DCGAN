@@ -54,6 +54,7 @@ class DCGAN:
             label = 'Predict_5x5_results'
             fig.text(0.5, 0.04, label, ha='center')
             plt.savefig(save_path)
+            plt.close()
 
     # 生成1×1的图片
     def generate_1x1_image(self, save_path):

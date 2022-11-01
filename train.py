@@ -198,3 +198,4 @@ for epoch in range(EPOCHS):
                 os.mkdir("results") if not os.path.exists("results") else None
                 save_path = f"results/Epoch {epoch} predict_5x5_results.png"
                 plt.savefig(save_path)
+                plt.close()
