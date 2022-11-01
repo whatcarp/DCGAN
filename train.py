@@ -13,21 +13,28 @@ from dcgan_nets import generator, discriminator
 
 
 # ==============参数设置================
-EPOCHS = 30
-BATCH_SIZE = 4
+EPOCHS = 200
+BATCH_SIZE = 16
+
+input_shape = [256, 256]
 channel = 128  # 特征层最厚是多少channel
-input_shape = [64, 64]
+
 Init_lr = 2e-3
 momentum = 0.5
+
+save_period = 10  # 每多少个epoch保存一次权重
+generate_flag = True  # 是否在每轮epoch后生成图片
+
 G_model_path = ""  # G预训练权重路径
 D_model_path = ""  # D预训练权重路径
-generate_flag = True  # 是否在每轮epoch后生成图片
 # =====================================
 
 
 save_dir = 'pth_dir'  # 训练时权重的保存路径
 cudnn.benchmark = True  # 卷积加速(输入尺寸固定时)
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+randn_in = torch.randn((5*5, 100)).to(DEVICE) if generate_flag == True else None  # 生成25个[100,]固定噪声画图
+
 
 # 生成GD模型
 G_model = generator(channel, input_shape)
@@ -40,7 +47,7 @@ D_model = discriminator(channel, input_shape)
     再用预训练模型参数更新model_dict，
     最后用load_state_dict方法初始化自己定义的新网络结构。
 """
-if G_model_path != "" and os.path.exists(G_model_path): 
+if G_model_path != "" and os.path.exists(G_model_path):
     model_dict = G_model.state_dict()
     pretrained_dict = torch.load(G_model_path, map_location=DEVICE)
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if np.shape(model_dict[k]) == np.shape(v)}
@@ -157,9 +164,6 @@ for epoch in range(EPOCHS):
             loop.set_description(f'Epoch {epoch+1}/{EPOCHS}')
             loop.set_postfix(G_loss=G_loss_avg, D_loss=D_loss_avg, lr=G_optim.state_dict()['param_groups'][0]['lr'])
 
-            if step > 10:
-                break
-
     if True:  # 一轮epoch结束后
 
         # 学习率更新
@@ -167,19 +171,19 @@ for epoch in range(EPOCHS):
         D_lr_schedule.step()
 
         # 保存权重
-        G_weights_path = os.path.join(save_dir, f'G_Epoch{epoch + 1}-GLoss{G_loss_avg:.4}-DLoss{D_loss_avg:.4}.pth')
-        D_weights_path = os.path.join(save_dir, f'D_Epoch{epoch + 1}-GLoss{G_loss_avg:.4}-DLoss{D_loss_avg:.4}.pth')
+        if (epoch+1) % save_period == 0 or (epoch+1) == EPOCHS:
 
-        os.mkdir(save_dir) if not os.path.exists(save_dir) else None
-        torch.save(G_model.state_dict(), G_weights_path)
-        torch.save(D_model.state_dict(), D_weights_path)
+            G_weights_path = os.path.join(save_dir, f'G_Epoch{epoch + 1}-GLoss{G_loss_avg:.4}-DLoss{D_loss_avg:.4}.pth')
+            D_weights_path = os.path.join(save_dir, f'D_Epoch{epoch + 1}-GLoss{G_loss_avg:.4}-DLoss{D_loss_avg:.4}.pth')
+            os.mkdir(save_dir) if not os.path.exists(save_dir) else None
+            torch.save(G_model.state_dict(), G_weights_path)
+            torch.save(D_model.state_dict(), D_weights_path)
 
         # 生成图片
         if generate_flag:
             with torch.no_grad():  # 停止autograd模块的工作，以加速节省显存
 
                 G_model.eval()
-                randn_in = torch.randn((5*5, 100)).to(DEVICE)  # 生成25个[100,]噪声
                 G_imgs = G_model(randn_in)  # 送入net得到生成图像
 
                 fig, ax = plt.subplots(5, 5, figsize=(5, 5))
